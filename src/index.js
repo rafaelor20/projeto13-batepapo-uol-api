@@ -6,6 +6,7 @@ const server = express();
 server.use(express.json());
 
 const participants = [];
+const messages = [];
 
 //const mongoClient = new MongoClient(process.env.DATABASE_URL);
 //const db = mongoClient.db();
@@ -43,6 +44,13 @@ function nameUsed(participant) {
     return false;
 }
 
+server.get("/participants", (req, res) => {
+    res.send(participants);
+})
+
+server.post("/messages", (req, res) => {
+    
+})
 
 server.listen(PORT, () => console.log(`Este servidor roda na porta: ${PORT}`));
 
