@@ -1,17 +1,19 @@
 import express from "express";
+import cors from "cors";
 import dayjs from "dayjs";
 
 const PORT = 5000;
 
 const server = express();
 server.use(express.json());
+server.use(cors());
 
 const participants = [];
 const messages = [];
 
 function validStr(str) {
     if (typeof str === "string") {
-        if (str > 0) {
+        if (str.length > 0) {
             return true;
         }
     }
@@ -30,6 +32,7 @@ server.post("/participants", (req, res) => {
             res.sendStatus(409);
         } else {
             participants.push({ name: participant.name, lastStatus: Date.now() })
+            console.log(participants);
             res.sendStatus(201);
         }
     } else {
@@ -39,7 +42,7 @@ server.post("/participants", (req, res) => {
 
 function validParticipantName(participant) {
     let ok;
-    validStr(participant.name)
+    ok = validStr(participant.name);
     return ok;
 }
 
@@ -61,15 +64,16 @@ server.get("/participants", (req, res) => {
 //POST /messages
 server.post("/messages", (req, res) => {
     const messageBody = req.body;
-    const messageHead = req.header;
+    const messageHead = req.headers;
     if (validMessage(messageBody, messageHead)) {
         messages.push({
-            from: messageHead.User,
+            from: messageHead.user,
             to: messageBody.to,
             text: messageBody.text,
             type: messageBody.type,
             time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
         })
+        console.log(messages);
         res.sendStatus(201);
     } else {
         res.sendStatus(422);
@@ -77,19 +81,19 @@ server.post("/messages", (req, res) => {
 })
 
 function validMessage(messageBody, messageHead) {
-    const isValidFrom = validUser(messageHead.User);
-    const isValidto = validStr(messageBody.to);
-    const isValidtext = validStr(messageBody.text);
-    const isValidtype = validMessageType(messageBody.type);
-    return !!((isValidFrom && isValidto) && (isValidtext && isValidtype));
+    const isValidFrom = validUser(messageHead.user);
+    const isValidTo = validStr(messageBody.to);
+    const isValidText = validStr(messageBody.text);
+    const isValidType = validMessageType(messageBody.type);
+    return !!((isValidFrom && isValidTo) && (isValidText && isValidType));
 }
 
 function validUser(user) {
-    return !!(userLogged(user) && validStr(user))
+    return !!(userLogged(user) && validStr(user));
 }
 
 function userLogged(user) {
-    for (let elem in participants) {
+    for (let elem of participants) {
         if (user === elem.name) {
             return true;
         }
@@ -97,8 +101,8 @@ function userLogged(user) {
     return false;
 }
 
-function validMessageType(message) {
-    return !!(message.type === "message" || message.type === "private_message");
+function validMessageType(type) {
+    return !!(type === "message" || type === "private_message");
 }
 
 //POST /messages
@@ -129,7 +133,7 @@ function filterSendMessages(user, limit) {
             }
         }
     }
-    if (typeof limit === "number"){
+    if (typeof limit === "number") {
         return (messagesToSend.slice(-limit));
     } else {
         return messagesToSend;
@@ -140,13 +144,37 @@ function filterSendMessages(user, limit) {
 
 //POST /status
 server.post("/status", (req, res) => {
-    const user = req.header.User;
-    if(userLogged(user)){
-        
+    const userName = req.header.User;
+    if (userLogged(userName)) {
+        const user = getParticipant(userName);
+        updateStatus(user);
     } else {
         res.sendStatus(404);
     }
 })
+
+function updateStatus(user) {
+    user = {
+        from: user.from,
+        to: user.to,
+        text: user.text,
+        type: user.type,
+        time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
+    };
+}
+
+function getParticipant(name) {
+    for (let elem in participants) {
+        if (elem.name === name) {
+            return elem;
+        }
+    }
+    return null;
+}
+
+
+
+
 //POST /status
 
 
