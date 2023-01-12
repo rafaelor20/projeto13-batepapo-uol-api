@@ -109,7 +109,7 @@ function validMessageType(type) {
 
 //GET /messages
 server.get("/messages", (req, res) => {
-    const user = req.header.User;
+    const user = req.headers.user;
     const limit = Number(req.query.limit);
     if (userLogged(user)) {
         const messagesToSend = filterSendMessages(user, limit);
@@ -121,15 +121,17 @@ server.get("/messages", (req, res) => {
 
 function filterSendMessages(user, limit) {
     const messagesToSend = [];
-    for (let message in messages) {
-        if (message.type === "message") {
-            messagesToSend.push(message)
+    console.log(user)
+    console.log(messages)
+    for (let i in messages) {
+        if (messages[i].type === "message") {
+            messagesToSend.push(messages[i])
         } else {
-            if (message.from === user) {
-                messagesToSend.push(message)
+            if (messages[i].from === user) {
+                messagesToSend.push(messages[i])
             }
-            if (message.to === user) {
-                messagesToSend.push(message)
+            if (messages[i].to === user) {
+                messagesToSend.push(messages[i])
             }
         }
     }
@@ -144,29 +146,27 @@ function filterSendMessages(user, limit) {
 
 //POST /status
 server.post("/status", (req, res) => {
-    const userName = req.header.User;
+    const userName = req.headers.user;
     if (userLogged(userName)) {
         const user = getParticipant(userName);
         updateStatus(user);
+        res.sendStatus(200);
     } else {
         res.sendStatus(404);
     }
 })
 
 function updateStatus(user) {
+    console.log(user)
     user = {
-        from: user.from,
-        to: user.to,
-        text: user.text,
-        type: user.type,
-        time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
+        name: user.name, lastStatus: Date.now()
     };
 }
 
 function getParticipant(name) {
-    for (let elem in participants) {
-        if (elem.name === name) {
-            return elem;
+    for (let i in participants) {
+        if (participants[i].name === name) {
+            return participants[i];
         }
     }
     return null;
