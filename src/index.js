@@ -1,12 +1,23 @@
 import express from "express";
 import cors from "cors";
+import { MongoClient } from "mongodb";
 import dayjs from "dayjs";
+import dotenv from "dotenv";
+import joi from 'joi'
+dotenv.config();
 
 const PORT = 5000;
 
 const server = express();
 server.use(express.json());
 server.use(cors());
+
+const mongoClient = new MongoClient(process.env.DATABASE_URL);
+let db;
+
+mongoClient.connect().then(() => {
+	db = mongoClient.db(); //Não adicione nenhum nome customizado para o banco de dados
+});
 
 const participants = [];
 const messages = [];
@@ -25,7 +36,7 @@ function validStr(str) {
 
 //post /participants
 
-server.post("/participants", (req, res) => {
+server.post("/participants", async (req, res) => {
     const participant = req.body;
     if (validParticipantName(participant)) {
         if (nameUsed(participant)) {
@@ -41,9 +52,11 @@ server.post("/participants", (req, res) => {
 })
 
 function validParticipantName(participant) {
-    let ok;
-    ok = validStr(participant.name);
-    return ok;
+    const participantSchema = joi.objecty({
+        name: joi.string().required()
+    })
+    const validation = participantSchema.validate(participant);
+    return !validation.error;
 }
 
 function nameUsed(participant) {
@@ -63,29 +76,37 @@ server.get("/participants", (req, res) => {
 
 //POST /messages
 server.post("/messages", (req, res) => {
-    const messageBody = req.body;
-    const messageHead = req.headers;
-    if (validMessage(messageBody, messageHead)) {
+    const message = {
+        from: req.headers.user,
+        to: req.body.to,
+        text: req.body.text,
+        type: req.body.type
+    }
+    if (validMessage(message)) {
         messages.push({
-            from: messageHead.user,
-            to: messageBody.to,
-            text: messageBody.text,
-            type: messageBody.type,
+            from: message.user,
+            to: message.to,
+            text: message.text,
+            type: message.type,
             time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
         })
-        console.log(messages);
         res.sendStatus(201);
     } else {
         res.sendStatus(422);
     }
 })
 
-function validMessage(messageBody, messageHead) {
-    const isValidFrom = validUser(messageHead.user);
-    const isValidTo = validStr(messageBody.to);
-    const isValidText = validStr(messageBody.text);
-    const isValidType = validMessageType(messageBody.type);
-    return !!((isValidFrom && isValidTo) && (isValidText && isValidType));
+function validMessage(message) {
+    const messageSchema = joi.object({
+        from: joi.string().required(),
+        to: joi.string().required(),
+        text: joi.string().required(),
+        type: joi.string().required(),
+    })
+
+    const validation = messageSchema.validate(message);
+
+    return (!validation.error && validMessageType(message.type));
 }
 
 function validUser(user) {
@@ -121,8 +142,6 @@ server.get("/messages", (req, res) => {
 
 function filterSendMessages(user, limit) {
     const messagesToSend = [];
-    console.log(user)
-    console.log(messages)
     for (let i in messages) {
         if (messages[i].type === "message") {
             messagesToSend.push(messages[i])
