@@ -187,10 +187,16 @@ server.post("/status", async (req, res) => {
 })
 
 function updateStatus(user) {
-    console.log(user)
-    user = {
-        name: user.name, lastStatus: Date.now()
-    };
+    const updatedUser = {
+        name: user.name,
+        lastStatus: Date.now()
+    }
+    db.collection('participants').updateOne({
+        _id: user._id
+        },
+        {
+            $set: updatedUser
+        });
 }
 
 function getParticipant(name, participants) {
