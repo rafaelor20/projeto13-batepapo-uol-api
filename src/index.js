@@ -170,7 +170,6 @@ server.get("/messages", async (req, res) => {
 function prepareMessagesToSend(messagesFromDB) {
     const messagesTosend = [];
     for (let message of messagesFromDB) {
-        console.log(message)
         messagesTosend.push({
             to: message.to,
             text: message.text,
@@ -196,12 +195,25 @@ function filterSendMessages(user, limit, messages) {
             }
         }
     }
-    if (typeof limit === "number") {
-        return (messagesToSend.slice(-limit));
+    if (typeof limit === "number" ) {
+        if (limit > 0){
+            return (messagesToSend.slice(-limit));
+        } else {
+            return messagesToSend;
+        }
     } else {
         return messagesToSend;
     }
 }
+
+/*
+function validLimit(limit){
+    const limitSchema = joi.object({
+        number: joi.number().required()
+    })
+    const validation = participantSchema.validate({number: limit});
+    return (validation && (limit>0));
+}*/
 
 //GET /messages
 
