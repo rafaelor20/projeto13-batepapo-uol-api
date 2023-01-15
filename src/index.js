@@ -22,6 +22,16 @@ mongoClient.connect().then(() => {
     console.log('db está zoado!')
 });
 
+
+function userLogged(userName, participants) {
+    for (let elem of participants) {
+        if (userName === elem.name) {
+            return true;
+        }
+    }
+    return false;
+}
+
 //post /participants
 
 server.post("/participants", async (req, res) => {
@@ -63,39 +73,45 @@ function nameUsed(participant, participants) {
     return false;
 }
 
-function loginMessage(participant){
+function loginMessage(participant) {
     db.collection("messages").insertOne({
-        from: participant.name, 
-        to: 'Todos', 
-        text: 'entra na sala...', 
-        type: 'status', 
+        from: participant.name,
+        to: 'Todos',
+        text: 'entra na sala...',
+        type: 'status',
         time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
     })
 }
 
 //post /participants
 
-server.get("/participants", (req, res) => {
+server.get("/participants", async (req, res) => {
+    const participants = await db.collection("participants").find().toArray();
     res.send(participants);
 })
 
 //POST /messages
-server.post("/messages", (req, res) => {
+server.post("/messages", async (req, res) => {
     const message = {
         from: req.headers.user,
         to: req.body.to,
         text: req.body.text,
         type: req.body.type
-    }
+    };
+    const participants = await db.collection("participants").find().toArray();
     if (validMessage(message)) {
-        messages.push({
-            from: message.user,
-            to: message.to,
-            text: message.text,
-            type: message.type,
-            time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
-        })
-        res.sendStatus(201);
+        if (userLogged(message.from, participants)) {
+            db.collection("messages").insertOne({
+                from: message.from,
+                to: message.to,
+                text: message.text,
+                type: message.type,
+                time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
+            })
+            res.sendStatus(201);
+        } else {
+            res.sendStatus(422);
+        }
     } else {
         res.sendStatus(422);
     }
@@ -114,19 +130,6 @@ function validMessage(message) {
     return (!validation.error && validMessageType(message.type));
 }
 
-function validUser(user) {
-    return !!(userLogged(user) && validStr(user));
-}
-
-function userLogged(user) {
-    for (let elem of participants) {
-        if (user === elem.name) {
-            return true;
-        }
-    }
-    return false;
-}
-
 function validMessageType(type) {
     return !!(type === "message" || type === "private_message");
 }
@@ -134,18 +137,20 @@ function validMessageType(type) {
 //POST /messages
 
 //GET /messages
-server.get("/messages", (req, res) => {
+server.get("/messages", async (req, res) => {
     const user = req.headers.user;
     const limit = Number(req.query.limit);
-    if (userLogged(user)) {
-        const messagesToSend = filterSendMessages(user, limit);
+    const messages = await db.collection("messages").find().toArray();
+    const participants = await db.collection("participants").find().toArray();
+    if (userLogged(user, participants)) {
+        const messagesToSend = filterSendMessages(user, limit, messages);
         res.status(201).send(messagesToSend);
     } else {
         res.sendStatus(401);
     }
 })
 
-function filterSendMessages(user, limit) {
+function filterSendMessages(user, limit, messages) {
     const messagesToSend = [];
     for (let i in messages) {
         if (messages[i].type === "message") {
@@ -169,10 +174,11 @@ function filterSendMessages(user, limit) {
 //GET /messages
 
 //POST /status
-server.post("/status", (req, res) => {
+server.post("/status", async (req, res) => {
     const userName = req.headers.user;
-    if (userLogged(userName)) {
-        const user = getParticipant(userName);
+    const participants = await db.collection("participants").find().toArray();
+    if (userLogged(userName, participants)) {
+        const user = getParticipant(userName, participants);
         updateStatus(user);
         res.sendStatus(200);
     } else {
@@ -187,7 +193,7 @@ function updateStatus(user) {
     };
 }
 
-function getParticipant(name) {
+function getParticipant(name, participants) {
     for (let i in participants) {
         if (participants[i].name === name) {
             return participants[i];
