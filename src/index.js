@@ -45,7 +45,13 @@ server.post("/participants", async (req, res) => {
                 name: participant.name,
                 lastStatus: Date.now()
             });
-            loginMessage(participant);
+            db.collection("messages").insertOne({
+                from: participant.name,
+                to: 'Todos',
+                text: 'entra na sala...',
+                type: 'status',
+                time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
+            })
             res.sendStatus(201);
         }
     } else {
@@ -74,13 +80,7 @@ function nameUsed(participant, participants) {
 }
 
 function loginMessage(participant) {
-    db.collection("messages").insertOne({
-        from: participant.name,
-        to: 'Todos',
-        text: 'entra na sala...',
-        type: 'status',
-        time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
-    })
+    
 }
 
 //post /participants
@@ -153,7 +153,7 @@ server.get("/messages", async (req, res) => {
 function filterSendMessages(user, limit, messages) {
     const messagesToSend = [];
     for (let i in messages) {
-        if (messages[i].type === "message") {
+        if (messages[i].type === "message" || messages[i].type === "status") {
             messagesToSend.push(messages[i])
         } else {
             if (messages[i].from === user) {
