@@ -144,7 +144,7 @@ server.get("/messages", async (req, res) => {
     const participants = await db.collection("participants").find().toArray();
     if (userLogged(user, participants)) {
         const messagesToSend = filterSendMessages(user, limit, messages);
-        res.status(201).send(messagesToSend);
+        res.status(200).send(messagesToSend);
     } else {
         res.sendStatus(401);
     }
@@ -212,6 +212,17 @@ function getParticipant(name, participants) {
 
 
 //POST /status
+
+//Remove inactive users 
+function removeInactiveUsers(){
+    
+}
+
+
+setInterval(removeInactiveUsers, 15000)
+
+
+//Remove inactive users 
 
 
 server.listen(PORT, () => console.log(`Este servidor roda na porta: ${PORT}`));
