@@ -80,7 +80,7 @@ function nameUsed(participant, participants) {
 }
 
 function loginMessage(participant) {
-    
+
 }
 
 //post /participants
@@ -151,17 +151,16 @@ server.get("/messages", async (req, res) => {
     }
 })
 
-function prepareMessagesToSend(messagesFromDB){
-    //console.log(messagesFromDB)
+function prepareMessagesToSend(messagesFromDB) {
     const messagesTosend = [];
-    for(let message of messagesFromDB){
+    for (let message of messagesFromDB) {
         console.log(message)
-        //console.log(messagesFromDB[i])
         messagesTosend.push({
             to: message.to,
             text: message.text,
             type: message.type,
-            from: message.from
+            from: message.from,
+            time: message.time
         })
     }
     return messagesTosend;
@@ -210,7 +209,7 @@ function updateStatus(user) {
     }
     db.collection('participants').updateOne({
         _id: user._id
-        },
+    },
         {
             $set: updatedUser
         });
@@ -231,28 +230,26 @@ function getParticipant(name, participants) {
 //POST /status
 
 //Remove inactive users 
-function removeInactiveUsers(){
-    
+function removeInactiveUsers() {
+    db.collection("participants").find().toArray().then(participants => {
+        const inactiveIds = [];
+        for (let participant of participants) {
+            if ((Date.now() - participant.lastStatus) >= 10000) {
+                inactiveIds.push(participant);
+            }
+        }
+        console.log(inactiveIds)
+        for (let inactive of inactiveIds) {
+            db.collection('participants').deleteOne({ name: inactive.name })
+        }
+    })
 }
 
 
-setInterval(removeInactiveUsers, 15000)
+setInterval(removeInactiveUsers, 15000);
 
 
 //Remove inactive users 
 
 
 server.listen(PORT, () => console.log(`Este servidor roda na porta: ${PORT}`));
-
-/*
-thunder client:
-
-participante:
-{name: 'João', lastStatus: 12313123} // O conteúdo do lastStatus será explicado nos próximos requisitos
-
-mensagem:
-{from: 'João', to: 'Todos', text: 'oi galera', type: 'message', time: '20:04:37'}
-
-
-
-*/
