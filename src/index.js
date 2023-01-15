@@ -32,6 +32,22 @@ function userLogged(userName, participants) {
     return false;
 }
 
+function formatTime(){
+    let hour = dayjs().hour();
+    let minute = dayjs().minute();
+    let second = dayjs().second();
+    if (hour < 10){
+        hour = `0${hour}`;
+    }
+    if (minute < 10){
+        minute = `0${minute}`;
+    }
+    if (second < 10){
+        second = `0${second}`;
+    }
+    return `${hour}:${minute}:${second}`;
+}
+
 //post /participants
 
 server.post("/participants", async (req, res) => {
@@ -50,7 +66,7 @@ server.post("/participants", async (req, res) => {
                 to: 'Todos',
                 text: 'entra na sala...',
                 type: 'status',
-                time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
+                time: formatTime()
             })
             res.sendStatus(201);
         }
@@ -106,7 +122,7 @@ server.post("/messages", async (req, res) => {
                 to: message.to,
                 text: message.text,
                 type: message.type,
-                time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
+                time: formatTime()
             })
             res.sendStatus(201);
         } else {
@@ -145,7 +161,7 @@ server.get("/messages", async (req, res) => {
     if (userLogged(user, participants)) {
         const messagesFromDB = filterSendMessages(user, limit, messages);
         const messagesToSend = prepareMessagesToSend(messagesFromDB);
-        res.status(200).send(messagesToSend);
+        res.status(200).send(messagesToSend.reverse());
     } else {
         res.sendStatus(401);
     }
@@ -241,14 +257,18 @@ function removeInactiveUsers() {
         console.log(inactiveIds)
         for (let inactive of inactiveIds) {
             db.collection('participants').deleteOne({ name: inactive.name })
+            db.collection("messages").insertOne({
+                from: inactive.name,
+                to: 'Todos',
+                text: 'sai da sala...',
+                type: 'status',
+                time: formatTime()
+            })
         }
     })
 }
-
-
+          
 setInterval(removeInactiveUsers, 15000);
-
-
 //Remove inactive users 
 
 
