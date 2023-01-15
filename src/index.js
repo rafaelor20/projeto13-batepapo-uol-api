@@ -143,12 +143,29 @@ server.get("/messages", async (req, res) => {
     const messages = await db.collection("messages").find().toArray();
     const participants = await db.collection("participants").find().toArray();
     if (userLogged(user, participants)) {
-        const messagesToSend = filterSendMessages(user, limit, messages);
+        const messagesFromDB = filterSendMessages(user, limit, messages);
+        const messagesToSend = prepareMessagesToSend(messagesFromDB);
         res.status(200).send(messagesToSend);
     } else {
         res.sendStatus(401);
     }
 })
+
+function prepareMessagesToSend(messagesFromDB){
+    //console.log(messagesFromDB)
+    const messagesTosend = [];
+    for(let message of messagesFromDB){
+        console.log(message)
+        //console.log(messagesFromDB[i])
+        messagesTosend.push({
+            to: message.to,
+            text: message.text,
+            type: message.type,
+            from: message.from
+        })
+    }
+    return messagesTosend;
+}
 
 function filterSendMessages(user, limit, messages) {
     const messagesToSend = [];
