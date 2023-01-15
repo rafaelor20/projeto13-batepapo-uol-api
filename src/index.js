@@ -22,18 +22,6 @@ mongoClient.connect().then(() => {
     console.log('db está zoado!')
 });
 
-const messages = [];
-
-function validStr(str) {
-    if (typeof str === "string") {
-        if (str.length > 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
-
 //post /participants
 
 server.post("/participants", async (req, res) => {
@@ -47,6 +35,7 @@ server.post("/participants", async (req, res) => {
                 name: participant.name,
                 lastStatus: Date.now()
             });
+            loginMessage(participant);
             res.sendStatus(201);
         }
     } else {
@@ -63,17 +52,25 @@ function validParticipantName(participant) {
 }
 
 function nameUsed(participant, participants) {
-    console.log(participants);
     if (participants.length >= 0) {
         for (let elem of participants) {
             if (elem.name === participant.name) {
-                console.log(participants.length);
                 return true;
             }
         }
         return false;
     };
     return false;
+}
+
+function loginMessage(participant){
+    db.collection("messages").insertOne({
+        from: participant.name, 
+        to: 'Todos', 
+        text: 'entra na sala...', 
+        type: 'status', 
+        time: `${dayjs().hour()}:${dayjs().minute()}:${dayjs().second()}`
+    })
 }
 
 //post /participants
