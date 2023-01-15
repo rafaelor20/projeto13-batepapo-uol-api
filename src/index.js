@@ -17,9 +17,9 @@ let db;
 
 mongoClient.connect().then(() => {
 	db = mongoClient.db(); //Não adicione nenhum nome customizado para o banco de dados
-});
+    console.log(db)
+}).catch(console.log("db tá zoado"));
 
-const participants = [];
 const messages = [];
 
 function validStr(str) {
@@ -31,8 +31,6 @@ function validStr(str) {
     return false;
 }
 
-//const mongoClient = new MongoClient(process.env.DATABASE_URL);
-//const db = mongoClient.db();
 
 //post /participants
 
@@ -42,8 +40,10 @@ server.post("/participants", async (req, res) => {
         if (nameUsed(participant)) {
             res.sendStatus(409);
         } else {
-            participants.push({ name: participant.name, lastStatus: Date.now() })
-            console.log(participants);
+            db.collection("participants").insertOne({
+                name: participant.name, 
+                lastStatus: Date.now()
+            });
             res.sendStatus(201);
         }
     } else {
@@ -52,7 +52,7 @@ server.post("/participants", async (req, res) => {
 })
 
 function validParticipantName(participant) {
-    const participantSchema = joi.objecty({
+    const participantSchema = joi.object({
         name: joi.string().required()
     })
     const validation = participantSchema.validate(participant);
@@ -60,12 +60,18 @@ function validParticipantName(participant) {
 }
 
 function nameUsed(participant) {
-    for (let elem of participants) {
-        if (elem.name === participant.name) {
-            return true;
-        }
+    console.log(db.collection("participants"))
+    if (db.collection("participants")){
+        db.collection("participants").find().toArray(participants =>{
+            for (let elem of participants) {
+                if (elem.name === participant.name) {
+                    return true;
+                }
+            }
+        });
+        return false;
     }
-    return false;
+    return true;
 }
 
 //post /participants
