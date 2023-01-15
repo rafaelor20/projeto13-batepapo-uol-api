@@ -12,13 +12,15 @@ const server = express();
 server.use(express.json());
 server.use(cors());
 
+
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 let db;
 
 mongoClient.connect().then(() => {
-	db = mongoClient.db(); //Não adicione nenhum nome customizado para o banco de dados
-    console.log(db)
-}).catch(console.log("db tá zoado"));
+    db = mongoClient.db(); //Não adicione nenhum nome customizado para o banco de dados
+}).catch(() => {
+    console.log('db está zoado!')
+});
 
 const messages = [];
 
@@ -36,12 +38,13 @@ function validStr(str) {
 
 server.post("/participants", async (req, res) => {
     const participant = req.body;
+    const participants = await db.collection("participants").find().toArray();
     if (validParticipantName(participant)) {
-        if (nameUsed(participant)) {
+        if (nameUsed(participant, participants)) {
             res.sendStatus(409);
         } else {
             db.collection("participants").insertOne({
-                name: participant.name, 
+                name: participant.name,
                 lastStatus: Date.now()
             });
             res.sendStatus(201);
@@ -59,19 +62,18 @@ function validParticipantName(participant) {
     return !validation.error;
 }
 
-function nameUsed(participant) {
-    console.log(db.collection("participants"))
-    if (db.collection("participants")){
-        db.collection("participants").find().toArray(participants =>{
-            for (let elem of participants) {
-                if (elem.name === participant.name) {
-                    return true;
-                }
+function nameUsed(participant, participants) {
+    console.log(participants);
+    if (participants.length >= 0) {
+        for (let elem of participants) {
+            if (elem.name === participant.name) {
+                console.log(participants.length);
+                return true;
             }
-        });
+        }
         return false;
-    }
-    return true;
+    };
+    return false;
 }
 
 //post /participants
