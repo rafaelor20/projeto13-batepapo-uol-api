@@ -12,7 +12,6 @@ const server = express();
 server.use(express.json());
 server.use(cors());
 
-
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
 let db;
 
@@ -294,7 +293,6 @@ function removeInactiveUsers() {
                 inactiveIds.push(participant);
             }
         }
-        console.log(inactiveIds)
         for (let inactive of inactiveIds) {
             db.collection('participants').deleteOne({ name: inactive.name })
             db.collection("messages").insertOne({
