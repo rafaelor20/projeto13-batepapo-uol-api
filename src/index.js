@@ -157,7 +157,6 @@ server.get("/messages", async (req, res) => {
     const user = req.headers.user;
     const limitStr = req.query.limit;
     if (limitStr !== undefined) {
-        console.log("oi")
         const limit = Number(limitStr);
         if (!validLimit(limit)) {
             res.sendStatus(422);
@@ -176,7 +175,7 @@ server.get("/messages", async (req, res) => {
         const messages = await db.collection("messages").find().toArray();
         const participants = await db.collection("participants").find().toArray();
         if (userLogged(user, participants)) {
-            const messagesFromDB = filterSendMessages(user, limit, messages);
+            const messagesFromDB = filterSendMessages(user, limitStr, messages);
             const messagesToSend = prepareMessagesToSend(messagesFromDB);
             res.status(200).send(messagesToSend.reverse());
         } else {
@@ -242,7 +241,17 @@ server.post("/status", async (req, res) => {
     const participants = await db.collection("participants").find().toArray();
     if (userLogged(userName, participants)) {
         const user = getParticipant(userName, participants);
-        updateStatus(user);
+        //updateStatus(user);
+        const updatedUser = {
+            name: user.name,
+            lastStatus: Date.now()
+        }
+        db.collection('participants').updateOne({
+            _id: user._id
+        },
+            {
+                $set: updatedUser
+            });
         res.sendStatus(200);
     } else {
         res.sendStatus(404);
@@ -299,7 +308,7 @@ function removeInactiveUsers() {
     })
 }
 
-//setInterval(removeInactiveUsers, 15000);
+setInterval(removeInactiveUsers, 15000);
 //Remove inactive users 
 
 
