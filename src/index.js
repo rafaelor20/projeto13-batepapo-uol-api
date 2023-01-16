@@ -32,17 +32,17 @@ function userLogged(userName, participants) {
     return false;
 }
 
-function formatTime(){
+function formatTime() {
     let hour = dayjs().hour();
     let minute = dayjs().minute();
     let second = dayjs().second();
-    if (hour < 10){
+    if (hour < 10) {
         hour = `0${hour}`;
     }
-    if (minute < 10){
+    if (minute < 10) {
         minute = `0${minute}`;
     }
-    if (second < 10){
+    if (second < 10) {
         second = `0${second}`;
     }
     return `${hour}:${minute}:${second}`;
@@ -155,16 +155,35 @@ function validMessageType(type) {
 //GET /messages
 server.get("/messages", async (req, res) => {
     const user = req.headers.user;
-    const limit = Number(req.query.limit);
-    const messages = await db.collection("messages").find().toArray();
-    const participants = await db.collection("participants").find().toArray();
-    if (userLogged(user, participants)) {
-        const messagesFromDB = filterSendMessages(user, limit, messages);
-        const messagesToSend = prepareMessagesToSend(messagesFromDB);
-        res.status(200).send(messagesToSend.reverse());
+    const limitStr = req.query.limit;
+    if (limitStr !== undefined) {
+        console.log("oi")
+        const limit = Number(limitStr);
+        if (!validLimit(limit)) {
+            res.sendStatus(422);
+        } else {
+            const messages = await db.collection("messages").find().toArray();
+            const participants = await db.collection("participants").find().toArray();
+            if (userLogged(user, participants)) {
+                const messagesFromDB = filterSendMessages(user, limit, messages);
+                const messagesToSend = prepareMessagesToSend(messagesFromDB);
+                res.status(200).send(messagesToSend.reverse());
+            } else {
+                res.sendStatus(401);
+            }
+        }
     } else {
-        res.sendStatus(401);
+        const messages = await db.collection("messages").find().toArray();
+        const participants = await db.collection("participants").find().toArray();
+        if (userLogged(user, participants)) {
+            const messagesFromDB = filterSendMessages(user, limit, messages);
+            const messagesToSend = prepareMessagesToSend(messagesFromDB);
+            res.status(200).send(messagesToSend.reverse());
+        } else {
+            res.sendStatus(401);
+        }
     }
+
 })
 
 function prepareMessagesToSend(messagesFromDB) {
@@ -195,8 +214,8 @@ function filterSendMessages(user, limit, messages) {
             }
         }
     }
-    if (typeof limit === "number" ) {
-        if (limit > 0){
+    if (typeof limit === "number") {
+        if (limit > 0) {
             return (messagesToSend.slice(-limit));
         } else {
             return messagesToSend;
@@ -206,14 +225,14 @@ function filterSendMessages(user, limit, messages) {
     }
 }
 
-/*
-function validLimit(limit){
+
+function validLimit(limit) {
     const limitSchema = joi.object({
         number: joi.number().required()
     })
-    const validation = participantSchema.validate({number: limit});
-    return (validation && (limit>0));
-}*/
+    const validation = limitSchema.validate({ number: limit });
+    return (validation && (limit > 0));
+}
 
 //GET /messages
 
@@ -279,8 +298,8 @@ function removeInactiveUsers() {
         }
     })
 }
-          
-setInterval(removeInactiveUsers, 15000);
+
+//setInterval(removeInactiveUsers, 15000);
 //Remove inactive users 
 
 
